@@ -1,5 +1,8 @@
 import express from "express";
 import session from "express-session";
+import "./mongo.js";
+import restaurants from "./routes/restaurants.js";
+
 
 const app = express();
 
@@ -10,5 +13,8 @@ app.use(session({
     saveUninitialized: true,
     cookie: { secure: false }
 }));
+
+app.use("/restaurants", restaurants);
+
 
 export default app;

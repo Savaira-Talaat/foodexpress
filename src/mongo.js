@@ -23,3 +23,14 @@ const UserSchema = new mongoose.Schema({
 });
 
 export const User = mongoose.model("User", UserSchema);
+
+const RestaurantsSchema = new mongoose.Schema({
+    id: Number,
+    name: String,
+    address: String,
+    phone: String,
+    opening_hours: String,}
+);
+
+export const Restaurants = mongoose.model("Restaurants", RestaurantsSchema);
+
