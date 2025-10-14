@@ -1,6 +1,6 @@
 import express from "express";
-
 import { Restaurants } from "../mongo.js";
+import { authenticateJWT, isAdmin } from "../middlewares/authentication.js";
 
 const router = express.Router();
 
@@ -34,7 +34,7 @@ router.get("/by-address/:address", async (req, res) => {
   }
 });
 
-router.post('/create-restaurant', (request, response) => {
+router.post('/create-restaurant', authenticateJWT, isAdmin, (request, response) => {
   try {
       const newRestaurant = Restaurants({ ...request.body });
       newRestaurant.save()
@@ -49,7 +49,7 @@ router.post('/create-restaurant', (request, response) => {
       
 });
 
-router.put('/modify-restaurant/:id', async (request, response) => {
+router.put('/modify-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;
 
@@ -73,7 +73,7 @@ router.put('/modify-restaurant/:id', async (request, response) => {
   }
 });
 
-router.delete('/delete-restaurant/:id', async (request, response) => {
+router.delete('/delete-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;
 
