@@ -1,8 +1,9 @@
 import express from "express";
 import session from "express-session";
 import "./mongo.js";
-import restaurants from "./routes/restaurants.js";
-
+import users from "./routes/users.js";
+import authentication from "./routes/authentication.js"
+import myAccount from "./routes/my-account.js"
 
 const app = express();
 
@@ -14,7 +15,8 @@ app.use(session({
     cookie: { secure: false }
 }));
 
-app.use("/restaurants", restaurants);
-
+app.use("/users", users);
+app.use("/authentication", authentication);
+app.use("/my-account", myAccount);
 
 export default app;
