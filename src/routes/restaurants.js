@@ -1,96 +1,129 @@
 import express from "express";
-
+import mongoose from "mongoose";
 import { Restaurants } from "../mongo.js";
 
 const router = express.Router();
 
-router.get("/", async (request, response) => {
-  const restaurants = await Restaurants.find();
-  response.status(200).json(restaurants);
-});
+/*
+  Pagination: GET /restaurants?page=1
+  - retourne 10 restaurants par page
+  - routes spécifiques avant ':id' pour éviter les conflits
+*/
 
-router.get("/:id", async (request, response) => {
-  const restaurants = await Restaurants.findById(request.params.id);
-  response.status(200).json(restaurants);
-});
-
+// Recherche par nom
 router.get("/by-name/:name", async (req, res) => {
   try {
-    const restaurant = await Restaurants.findOne({ name: req.params.name });
+    const restaurant = await Restaurants.findOne({ name: req.params.name }).lean();
     if (!restaurant) return res.status(404).json({ message: "Aucun restaurant trouvé" });
     res.status(200).json(restaurant);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
+// Recherche par adresse
 router.get("/by-address/:address", async (req, res) => {
   try {
-    const restaurant = await Restaurants.findOne({ address: req.params.address });
+    const restaurant = await Restaurants.findOne({ address: req.params.address }).lean();
     if (!restaurant) return res.status(404).json({ message: "Aucun restaurant trouvé" });
     res.status(200).json(restaurant);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
-router.post('/create-restaurant', (request, response) => {
+// Liste paginée (10 par page)
+router.get("/", async (request, response) => {
   try {
-      const newRestaurant = Restaurants({ ...request.body });
-      newRestaurant.save()
-      .then(
-          restaurants => {
-              response.status(200).json({ message: `${restaurants.name} a été créé avec succès. Voici son id:`, id: newRestaurant._id })
-          }
-      )
-    } catch (error) {
-      response.status(200).json({})
-    }
-      
+    const perPage = 10;
+    const page = Math.max(1, parseInt(request.query.page, 10) || 1);
+    const skip = (page - 1) * perPage;
+
+    const [total, restaurants] = await Promise.all([
+      Restaurants.countDocuments(),
+      Restaurants.find().sort({ _id: 1 }).skip(skip).limit(perPage).lean()
+    ]);
+
+    response.status(200).json({
+      data: restaurants,
+      meta: {
+        current_page: page,
+        per_page: perPage,
+        total,
+        total_pages: Math.ceil(total / perPage)
+      },
+      links: {
+        next: page * perPage < total ? `?page=${page + 1}` : null,
+        prev: page > 1 ? `?page=${page - 1}` : null
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Erreur serveur" });
+  }
 });
 
+// Get by id (dernier, pour éviter conflits avec autres routes)
+router.get("/:id", async (request, response) => {
+  try {
+    const id = request.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) return response.status(400).json({ message: "ID invalide" });
+
+    const restaurant = await Restaurants.findById(id).lean();
+    if (!restaurant) return response.status(404).json({ message: "Restaurant non trouvé" });
+
+    response.status(200).json(restaurant);
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+// Création
+router.post('/create-restaurant', async (request, response) => {
+  try {
+    const newRestaurant = new Restaurants({ ...request.body });
+    const saved = await newRestaurant.save();
+    response.status(201).json({ message: `${saved.name} a été créé avec succès.`, id: saved._id });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Erreur lors de la création du restaurant" });
+  }
+});
+
+// Modification
 router.put('/modify-restaurant/:id', async (request, response) => {
   try {
     const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return response.status(400).json({ message: "ID invalide" });
 
-    const updatedRestaurant = await Restaurants.findByIdAndUpdate(
-      id,
-      request.body,
-      { new: true } // retourne le document modifié
-    );
+    const updatedRestaurant = await Restaurants.findByIdAndUpdate(id, request.body, { new: true }).lean();
 
-    if (!updatedRestaurant) {
-      return response.status(404).json({ message: "Restaurant non trouvé" });
-    }
+    if (!updatedRestaurant) return response.status(404).json({ message: "Restaurant non trouvé" });
 
-    response.status(200).json({
-      message: `${updatedRestaurant.name} a été modifié avec succès.`,
-      restaurant: updatedRestaurant
-    });
+    response.status(200).json({ message: `${updatedRestaurant.name} a été modifié avec succès.`, restaurant: updatedRestaurant });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Erreur lors de la modification du restaurant" });
   }
 });
 
+// Suppression
 router.delete('/delete-restaurant/:id', async (request, response) => {
   try {
     const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return response.status(400).json({ message: "ID invalide" });
 
-    const deletedRestaurant = await Restaurants.findByIdAndDelete(id);
+    const deletedRestaurant = await Restaurants.findByIdAndDelete(id).lean();
+    if (!deletedRestaurant) return response.status(404).json({ message: "Restaurant non trouvé" });
 
-    if (!deletedRestaurant) {
-      return response.status(404).json({ message: "Restaurant non trouvé" });
-    }
-
-    response.status(200).json({
-      message: `${deletedRestaurant.name} a été supprimé avec succès.`
-    });
+    response.status(200).json({ message: `${deletedRestaurant.name} a été supprimé avec succès.` });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Erreur lors de la suppression du restaurant" });
   }
 });
-
 
 export default router;
