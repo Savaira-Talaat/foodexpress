@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import { Restaurants } from "../mongo.js";
+import { authenticateJWT, isAdmin } from "../middlewares/authentication.js";
 
 const router = express.Router();
 
