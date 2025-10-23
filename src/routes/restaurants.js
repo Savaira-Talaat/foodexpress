@@ -83,7 +83,7 @@ router.get("/:id", async (request, response) => {
 });
 
 // Création
-router.post('/create-restaurant', async (request, response) => {
+router.post('/create-restaurant', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const newRestaurant = new Restaurants({ ...request.body });
     const saved = await newRestaurant.save();
@@ -95,7 +95,7 @@ router.post('/create-restaurant', async (request, response) => {
 });
 
 // Modification
-router.put('/modify-restaurant/:id', async (request, response) => {
+router.put('/modify-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return response.status(400).json({ message: "ID invalide" });
@@ -112,7 +112,7 @@ router.put('/modify-restaurant/:id', async (request, response) => {
 });
 
 // Suppression
-router.delete('/delete-restaurant/:id', async (request, response) => {
+router.delete('/delete-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return response.status(400).json({ message: "ID invalide" });

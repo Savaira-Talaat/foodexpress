@@ -34,3 +34,17 @@ const RestaurantsSchema = new mongoose.Schema({
 
 export const Restaurants = mongoose.model("Restaurants", RestaurantsSchema);
 
+const MenuSchema = new mongoose.Schema({
+    id: Number,
+    restaurant_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: Restaurants,
+        required: true
+    },
+    name: String,
+    description: String,
+    price: Number,
+    category: String
+});
+
+export const Menus = mongoose.model("Menus", MenuSchema);
