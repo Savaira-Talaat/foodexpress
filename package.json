@@ -5,17 +5,27 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon src/index.js"
+    "start": "nodemon src/index.js",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cross-env": "^10.1.0",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+    "jest": "^30.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "nodemon": "^3.1.10",
-    "session": "^0.1.0"
+    "session": "^0.1.0",
+    "supertest-session": "^5.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4"
   }
 }

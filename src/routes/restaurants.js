@@ -5,13 +5,6 @@ import { authenticateJWT, isAdmin } from "../middlewares/authentication.js";
 
 const router = express.Router();
 
-/*
-  Pagination: GET /restaurants?page=1
-  - retourne 10 restaurants par page
-  - routes spécifiques avant ':id' pour éviter les conflits
-*/
-
-// Recherche par nom
 router.get("/by-name/:name", async (req, res) => {
   try {
     const restaurant = await Restaurants.findOne({ name: req.params.name }).lean();
@@ -23,7 +16,6 @@ router.get("/by-name/:name", async (req, res) => {
   }
 });
 
-// Recherche par adresse
 router.get("/by-address/:address", async (req, res) => {
   try {
     const restaurant = await Restaurants.findOne({ address: req.params.address }).lean();
@@ -35,7 +27,6 @@ router.get("/by-address/:address", async (req, res) => {
   }
 });
 
-// Liste paginée (10 par page)
 router.get("/", async (request, response) => {
   try {
     const perPage = 10;
@@ -66,7 +57,6 @@ router.get("/", async (request, response) => {
   }
 });
 
-// Get by id (dernier, pour éviter conflits avec autres routes)
 router.get("/:id", async (request, response) => {
   try {
     const id = request.params.id;
@@ -82,7 +72,6 @@ router.get("/:id", async (request, response) => {
   }
 });
 
-// Création
 router.post('/create-restaurant', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const newRestaurant = new Restaurants({ ...request.body });
@@ -94,7 +83,6 @@ router.post('/create-restaurant', authenticateJWT, isAdmin, async (request, resp
   }
 });
 
-// Modification
 router.put('/modify-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;
@@ -111,7 +99,6 @@ router.put('/modify-restaurant/:id', authenticateJWT, isAdmin, async (request, r
   }
 });
 
-// Suppression
 router.delete('/delete-restaurant/:id', authenticateJWT, isAdmin, async (request, response) => {
   try {
     const { id } = request.params;

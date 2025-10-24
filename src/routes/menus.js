@@ -46,9 +46,12 @@ router.get("/:id", async(req, res) => {
 
 router.post("/", authenticateJWT, isAdmin, async(req, res) => {
     try {
-        const newMenu = Menus ({...req.body});
-        newMenu.save()
-        res.status(200).json({message: `Le menu ${newMenu.name} a été créé avec succès.`});
+        if (!req.body.restaurant_id) {
+            return res.status(400).json({ message: "restaurant_id manquant" });
+        }
+        const newMenu = new Menus ({...req.body});
+        await newMenu.save()
+        res.status(200).json({message: `Le menu ${newMenu.name} a été créé avec succès.`, menu: newMenu});
     } catch (error) {
         console.error(error);
         res.status(500).json({message: "Erreur lors de la création du menu"})
@@ -58,7 +61,9 @@ router.post("/", authenticateJWT, isAdmin, async(req, res) => {
 router.put("/:id", authenticateJWT, isAdmin, async(req, res) => {
     try {
         const menuId = req.params.id;
-
+        if (!menuId) {
+            return res.status(400).json({ message: "ID du menu manquant" });
+        }
         const updateMenu = await Menus.findByIdAndUpdate(
             menuId,
             req.body,
@@ -80,6 +85,9 @@ router.put("/:id", authenticateJWT, isAdmin, async(req, res) => {
 router.delete("/:id", authenticateJWT, isAdmin, async(req, res) => {
     try {
         const menuId = req.params.id;
+        if (!menuId) {
+            return res.status(400).json({ message: "ID du menu manquant" });
+        }
         const deleteMenu = await Menus.findByIdAndDelete(menuId);
         if (!deleteMenu) {
             return res.status(404).json({message: "Menu introuvable."});
@@ -87,9 +95,9 @@ router.delete("/:id", authenticateJWT, isAdmin, async(req, res) => {
         
         res.status(200).json({message: `Le menu ${deleteMenu.name} a été supprimé avec succès`});
     } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erreur lors de la suppression du menu." });
-  }
+        console.error(error);
+        res.status(500).json({ message: "Erreur lors de la suppression du menu." });
+    }
 });
 
 export default router;

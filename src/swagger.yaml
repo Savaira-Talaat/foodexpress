@@ -1,0 +1,862 @@
+openapi: 3.0.0
+info:
+  title: FoodExpress API
+  description: API RESTful pour la gestion de restaurants, menus et utilisateurs
+  version: 1.0.0
+  contact:
+    name: FoodExpress Support
+    email: support@foodexpress.com
+
+servers:
+  - url: http://localhost:3000
+    description: Serveur de développement
+
+tags:
+  - name: Authentication
+    description: Endpoints d'authentification
+  - name: Users
+    description: Gestion des utilisateurs
+  - name: Restaurants
+    description: Gestion des restaurants
+  - name: Menus
+    description: Gestion des menus
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenu après connexion
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+      required:
+        - email
+        - username
+        - password
+
+    Restaurant:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          example: "Le Gourmet Parisien"
+        address:
+          type: string
+          example: "123 Rue de Rivoli, Paris"
+        phone:
+          type: string
+          example: "0123456789"
+        opening_hours:
+          type: string
+          example: "10h-22h"
+      required:
+        - name
+        - address
+        - phone
+        - opening_hours
+
+    Menu:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        restaurant_id:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        name:
+          type: string
+          example: "Menu Déjeuner"
+        description:
+          type: string
+          example: "Entrée + Plat + Dessert"
+        price:
+          type: number
+          format: float
+          example: 24.50
+        category:
+          type: string
+          example: "Menu du midi"
+      required:
+        - restaurant_id
+        - name
+        - price
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Une erreur est survenue"
+
+    PaginatedRestaurants:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Restaurant'
+        meta:
+          type: object
+          properties:
+            current_page:
+              type: integer
+              example: 1
+            per_page:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 50
+            total_pages:
+              type: integer
+              example: 5
+        links:
+          type: object
+          properties:
+            next:
+              type: string
+              nullable: true
+              example: "?page=2"
+            prev:
+              type: string
+              nullable: true
+              example: null
+
+    PaginatedMenus:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalMenus:
+          type: integer
+          example: 50
+        menus:
+          type: array
+          items:
+            $ref: '#/components/schemas/Menu'
+
+paths:
+  /authentication/register:
+    post:
+      tags:
+        - Authentication
+      summary: Créer un nouveau compte utilisateur
+      description: Permet à n'importe qui de créer un compte (pas d'authentification requise)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+              required:
+                - email
+                - username
+                - password
+            example:
+              email: "newuser@example.com"
+              username: "newuser"
+              password: "securePassword123"
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  userId:
+                    type: string
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /authentication/login:
+    post:
+      tags:
+        - Authentication
+      summary: Se connecter
+      description: Authentification et obtention d'un token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+              required:
+                - email
+                - password
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Lister tous les utilisateurs
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Non authentifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Accès refusé (admin requis)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Obtenir un utilisateur par ID
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      responses:
+        '200':
+          description: Détails de l'utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Utilisateur introuvable
+
+    put:
+      tags:
+        - Users
+      summary: Modifier un utilisateur
+      description: Un utilisateur peut modifier son propre compte, un admin peut modifier n'importe quel compte
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+            example:
+              email: "updated@example.com"
+              username: "updateduser"
+              password: "newPassword123"
+      responses:
+        '200':
+          description: Utilisateur modifié avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Utilisateur introuvable
+        '409':
+          description: Email déjà utilisé
+
+    delete:
+      tags:
+        - Users
+      summary: Supprimer un utilisateur
+      description: Un utilisateur peut supprimer son propre compte, un admin peut supprimer n'importe quel compte
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de l'utilisateur
+      responses:
+        '200':
+          description: Utilisateur supprimé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Utilisateur introuvable
+
+  /restaurants:
+    get:
+      tags:
+        - Restaurants
+      summary: Lister les restaurants avec pagination
+      description: Accessible publiquement (pas d'authentification requise)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, address]
+          description: Champ de tri
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Ordre de tri
+      responses:
+        '200':
+          description: Liste paginée des restaurants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRestaurants'
+        '500':
+          description: Erreur serveur
+
+  /restaurants/by-name/{name}:
+    get:
+      tags:
+        - Restaurants
+      summary: Rechercher un restaurant par nom
+      description: Accessible publiquement
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nom exact du restaurant
+      responses:
+        '200':
+          description: Restaurant trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          description: Restaurant introuvable
+
+  /restaurants/by-address/{address}:
+    get:
+      tags:
+        - Restaurants
+      summary: Rechercher un restaurant par adresse
+      description: Accessible publiquement
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Adresse exacte du restaurant
+      responses:
+        '200':
+          description: Restaurant trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          description: Restaurant introuvable
+
+  /restaurants/{id}:
+    get:
+      tags:
+        - Restaurants
+      summary: Obtenir un restaurant par ID
+      description: Accessible publiquement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du restaurant
+      responses:
+        '200':
+          description: Détails du restaurant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '400':
+          description: ID invalide
+        '404':
+          description: Restaurant introuvable
+
+  /restaurants/create-restaurant:
+    post:
+      tags:
+        - Restaurants
+      summary: Créer un nouveau restaurant
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                phone:
+                  type: string
+                opening_hours:
+                  type: string
+              required:
+                - name
+                - address
+                - phone
+                - opening_hours
+            example:
+              name: "Le Bistrot"
+              address: "45 Avenue des Champs-Élysées"
+              phone: "0145678901"
+              opening_hours: "11h-23h"
+      responses:
+        '201':
+          description: Restaurant créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: string
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé (admin requis)
+
+  /restaurants/modify-restaurant/{id}:
+    put:
+      tags:
+        - Restaurants
+      summary: Modifier un restaurant
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du restaurant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                phone:
+                  type: string
+                opening_hours:
+                  type: string
+            example:
+              opening_hours: "10h-00h"
+      responses:
+        '200':
+          description: Restaurant modifié avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  restaurant:
+                    $ref: '#/components/schemas/Restaurant'
+        '400':
+          description: ID invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Restaurant introuvable
+
+  /restaurants/delete-restaurant/{id}:
+    delete:
+      tags:
+        - Restaurants
+      summary: Supprimer un restaurant
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du restaurant
+      responses:
+        '200':
+          description: Restaurant supprimé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: ID invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Restaurant introuvable
+
+  /menus:
+    get:
+      tags:
+        - Menus
+      summary: Lister les menus avec pagination
+      description: Accessible publiquement (pas d'authentification requise)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Numéro de page
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Nombre de menus par page
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price, category, name]
+          description: Champ de tri
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Ordre de tri
+      responses:
+        '200':
+          description: Liste paginée des menus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMenus'
+        '500':
+          description: Erreur serveur
+
+    post:
+      tags:
+        - Menus
+      summary: Créer un nouveau menu
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                restaurant_id:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                  format: float
+                category:
+                  type: string
+              required:
+                - restaurant_id
+                - name
+                - price
+            example:
+              restaurant_id: "507f1f77bcf86cd799439012"
+              name: "Menu Végétarien"
+              description: "Entrée + Plat végétarien + Dessert"
+              price: 19.90
+              category: "Menus spéciaux"
+      responses:
+        '200':
+          description: Menu créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  menu:
+                    $ref: '#/components/schemas/Menu'
+        '400':
+          description: restaurant_id manquant
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé (admin requis)
+
+  /menus/{id}:
+    get:
+      tags:
+        - Menus
+      summary: Obtenir un menu par ID
+      description: Accessible publiquement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du menu
+      responses:
+        '200':
+          description: Détails du menu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Menu'
+        '404':
+          description: Menu introuvable
+        '500':
+          description: Erreur serveur
+
+    put:
+      tags:
+        - Menus
+      summary: Modifier un menu
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du menu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                  format: float
+                category:
+                  type: string
+            example:
+              price: 22.50
+              description: "Menu mis à jour"
+      responses:
+        '200':
+          description: Menu modifié avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  menu:
+                    $ref: '#/components/schemas/Menu'
+        '400':
+          description: ID manquant
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Menu introuvable
+
+    delete:
+      tags:
+        - Menus
+      summary: Supprimer un menu
+      description: Accessible uniquement aux administrateurs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID du menu
+      responses:
+        '200':
+          description: Menu supprimé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: ID manquant
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Menu

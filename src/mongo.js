@@ -25,7 +25,6 @@ const UserSchema = new mongoose.Schema({
 export const User = mongoose.model("User", UserSchema);
 
 const RestaurantsSchema = new mongoose.Schema({
-    id: Number,
     name: String,
     address: String,
     phone: String,
@@ -35,10 +34,9 @@ const RestaurantsSchema = new mongoose.Schema({
 export const Restaurants = mongoose.model("Restaurants", RestaurantsSchema);
 
 const MenuSchema = new mongoose.Schema({
-    id: Number,
     restaurant_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: Restaurants,
+        ref: "Restaurants",
         required: true
     },
     name: String,
