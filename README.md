@@ -208,7 +208,7 @@ GET /restaurants/by-name/Le%20Gourmet
 ## Structure du projet
 
 ```
-foodexpress-api/
+foodexpress/
 ├── src/
 │   ├── routes/
 │   │   ├── authentication.js
